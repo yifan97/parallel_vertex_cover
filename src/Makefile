@@ -14,7 +14,7 @@ $(SIMPLE) : $(OBJ)/vanila_vertex_cover.o
 $(SERIAL) : $(OBJ)/serial_vertex_cover.o 
 	$(CC) $(CFLAGS) $(OBJ)/serial_vertex_cover.o -o $(BIN)/$(SERIAL)
 
-$(OPENMAP) : $(OBJ)/openmp_vertex_cover.o 
+$(OPENMAP) : $(OBJ)/parallel_vertex_cover.o 
 	$(CC) $(CFLAGS) $(OBJ)/parallel_vertex_cover.o -o $(BIN)/$(OPENMAP)
 
 $(OBJ)/vanila_vertex_cover.o : ./vanila_vertex_cover.cpp ./vanila_vertex_cover.h
