@@ -12,12 +12,11 @@
 
 using namespace std;
 
-unordered_set<Edge> available_edges;
-unordered_set<Vertex> covered_vertex;
-map<int, Vertex> id_to_vertex;
-map<Vertex, unordered_set<Edge>> vertex_to_edges;
-
 void program(){
+    unordered_set<Edge> available_edges;
+    unordered_set<Vertex> covered_vertex;
+    map<int, Vertex> id_to_vertex;
+    map<Vertex, unordered_set<Edge>> vertex_to_edges;
     
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
@@ -69,29 +68,38 @@ void program(){
 
 void main_logic(unordered_set<Edge> available_edges){
     int random_idx = rand() % available_edges.size();
-    unordered_set<Edge>::iterator it = available_edges.begin();
-    for(int i = 0; i < random_idx; i++){
-        it++;
-    }
-    Vertex v1 = (*it).v1;
-    Vertex v2 = (*it).v2;
-    covered_vertex.insert(v1);
-    remove_related_edges(v1);
-    covered_vertex.insert(v2);
-    remove_related_edges(v2);
+    unordered_set<Edge>::iterator it = available_edges.begin() + random_idx;
+    Vertex v1 = it->first;
+    Vertex v2 = it->second;
+    step(v1, v2);
 }
 
 void remove_related_edges(Vertex v){
     unordered_set<Edge> neighbors = vertex_to_edges[v];
-    for(auto it = neighbors.begin(); it != neighbors.end(); it++){
-        Vertex v1 = (*it).v1;
-        Vertex v2 = (*it).v2;
+    for(auto it = neighbors.begin(); it < neighbors.end(); it++){
+        Vertex v1 = neighbors.v1;
+        Vertex v2 = neighbors.v2;
 
-        if(v1.id != v.id) {
+        if(v1 != v) {
             vertex_to_edges[v1].erase(it);
         } else{
             vertex_to_edges[v2].erase(it);
         }
     }
     vertex_to_edges[v].clear();
+}
+
+void step(Vertex v1, Vertex v2){
+    float beta = min((1 - v1.score) * v1.weight, (1 - v2.score) * v2.weight);
+    v1.score += beta /  v1.weight;
+    v2.score += beta /  v2.weight;
+    if(v1.score == 1.0) {
+        covered_vertex.insert(v1);
+        available_edges.erase(v1);
+        remove_related_edges(v1);
+    } else if(v2.score == 1.0) {
+        covered_vertex.insert(v2);
+        available_edges.erase(v2);
+        remove_related_edges(v2);
+    }
 }
