@@ -7,16 +7,20 @@
 #include <stdlib.h>     
 #include <time.h>
 #include <unordered_set>
-#include <algorithm>         
+#include <algorithm>
+#include <vector>   
 #include "serial_vertex_cover.h"
+#include <omp.h>
 
 using namespace std;
 
+unordered_set<Edge> available_edges;
+vector<Vertex> available_vertex;
+unordered_set<Vertex> covered_vertex;
+map<int, Vertex> id_to_vertex;
+map<Vertex, unordered_set<Edge>> vertex_to_edges;
+
 void program(){
-    unordered_set<Edge> available_edges;
-    unordered_set<Vertex> covered_vertex;
-    map<int, Vertex> id_to_vertex;
-    map<Vertex, unordered_set<Edge>> vertex_to_edges;
     
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
@@ -51,40 +55,70 @@ void program(){
         file.close();
     }
 
-    while(available_edges.size() >= 0){
-        main_logic(available_edges);
+    while(available_vertex.size() >= 0){
+#pragma omp parallel for shared(wires) private(i) schedule(dynamic)
+        for(int i = 0; i < available_vertex.size(); i++){
+            main_logic(available_vertex[i]);
+        }
     }
 }
 
-// While a edge is not covered:
+// While a vertex is not finished:
+//    if all edges are covered, finish
+//    else flip a coin, heads->leaf node, tails->root node
+//    if leaf v:
+//      label edge （v,w）active if w is root and step(x,(v,w)) would add v
+//      randomly choose one active edge as star edge 
 //         For (v, w) in available_edges:
-// 		step(v ,w)
-//   		If v == 1:
-//             		add_to_cover(v)
-// 			remove all ages v connects
-//         	else if w == 1:
-//             		add_to_cover(w)
-// 			remove all ages w connects
+//    if root w:
+//      flip a coin
+//      if heads:
+//          for each star edge(fixed order):
+//              if w not yet in the cover, do step(x,(v,w))
+//      if tails:
+//          do step for only the last edge in above order          
 
-void main_logic(unordered_set<Edge> available_edges){
-    int random_idx = rand() % available_edges.size();
-    unordered_set<Edge>::iterator it = available_edges.begin() + random_idx;
-    Vertex v1 = it->first;
-    Vertex v2 = it->second;
+
+// 		step(v ,w)
+//      beta = min((1-Xv)*Cv, (1-Xw)Cw)
+//      Xv += beta/Cv, Xw += beta/Cw
+//   	If v == 1:
+// 		    cover v, and all v's edges
+//      else if w == 1:
+// 		    cover w, and all w's edges
+
+void main_logic(Vertex v, int i){
+    if(vertex_to_edges[v].size() == 0){
+        omp_set_lock(&v.lock);
+        vector<Vertex>::iterator it = find(available_vertex.begin(), available_vertex.end(), v);
+        if(it != available_vertex.end()){
+            available_vertex.erase(it);
+            covered_vertex.insert(v);
+        }
+        return;
+        omp_unset_lock(&v.lock);
+    }
+    int head = rand() % 2;
+    unordered_set<Edge>::iterator it = available_edges.begin();
+    for(int i = 0; i < random_idx; i++){
+        it++;
+    }
+    Vertex v1 = (*it).v1;
+    Vertex v2 = (*it).v2;
     step(v1, v2);
 }
 
 void remove_related_edges(Vertex v){
     unordered_set<Edge> neighbors = vertex_to_edges[v];
-    for(auto it = neighbors.begin(); it < neighbors.end(); it++){
-        Vertex v1 = neighbors.v1;
-        Vertex v2 = neighbors.v2;
-
-        if(v1 != v) {
+    for(unordered_set<Edge>::iterator it = neighbors.begin(); it != neighbors.end(); it++){
+        Vertex v1 = (*it).v1;
+        Vertex v2 = (*it).v2;
+        if(v1.id != v.id) {
             vertex_to_edges[v1].erase(it);
         } else{
             vertex_to_edges[v2].erase(it);
         }
+        available_edges.erase(it);
     }
     vertex_to_edges[v].clear();
 }
@@ -95,11 +129,9 @@ void step(Vertex v1, Vertex v2){
     v2.score += beta /  v2.weight;
     if(v1.score == 1.0) {
         covered_vertex.insert(v1);
-        available_edges.erase(v1);
         remove_related_edges(v1);
     } else if(v2.score == 1.0) {
         covered_vertex.insert(v2);
-        available_edges.erase(v2);
         remove_related_edges(v2);
     }
 }
