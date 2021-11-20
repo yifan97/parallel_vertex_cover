@@ -27,6 +27,7 @@ void main_logic(unordered_set<Edge> available_edges);
 void remove_related_edges(Vertex v);
 void step(Edge* edge);
 void check_finish(Vertex* v, vector<Vertex*> toBeDeleted);
+void delete_finish(Vertex* v, vector<Vertex*> toBeDeleted, vector<Vertex*> tmp);
 void run_leaf(Vertex* v);
 void run_root(Vertex* v);
 vector<Edge*> get_star_edge(Vertex* v);
