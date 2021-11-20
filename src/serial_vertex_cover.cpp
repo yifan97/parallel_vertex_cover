@@ -8,6 +8,7 @@
 #include <time.h>
 #include <unordered_set>
 #include <algorithm>   
+#include <chrono>
 #include "serial_vertex_cover.h"
 
 using namespace std;
@@ -19,6 +20,13 @@ map<Vertex*, unordered_set<Edge*> > vertex_to_edges;
 unordered_set<Edge*> all_edges;
 
 int main(int argc, const char *argv[]){
+    using namespace std::chrono;
+    typedef std::chrono::high_resolution_clock Clock;
+    typedef std::chrono::duration<double> dsec;
+
+    auto init_start = Clock::now();
+    double init_time = 0;
+
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
     if (file.is_open()) {
@@ -53,11 +61,20 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
+    init_time += duration_cast<dsec>(Clock::now() - init_start).count();
+    printf("Initialization Time: %lf.\n", init_time);
+
+    auto compute_start = Clock::now();
+    double compute_time = 0;
+
     while(available_edges.size() > 0){
         main_logic(available_edges);
     }
 
-    write_cover_to_file();
+    compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
+    printf("Computation Time: %lf.\n", compute_time);
+
+    // write_cover_to_file();
     check_correctness();
     return 0;
 }
@@ -126,9 +143,8 @@ void check_correctness(){
         int id2 = (*it)->v2->id;
 
         if(covered_ids.find(id1) == covered_ids.end() && covered_ids.find(id2) == covered_ids.end()) {
-            // cout << "You missed some vertex!!!!" << endl;
             count++;
         }
     }
-    cout << "You missed " << count << endl;
+    cout << "You missed " << count << " vertex!!!!" << endl;
 }

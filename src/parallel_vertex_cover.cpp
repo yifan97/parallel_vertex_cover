@@ -11,17 +11,29 @@
 #include <algorithm>
 #include <vector>
 #include <set>
+#include <chrono>
 #include <omp.h>
 
 using namespace std;
 
-vector<Vertex*> available_vertex;
-set<Vertex*> covered_vertex;
+// no lock needed
 map<int, Vertex*> id_to_vertex;
-map<Vertex*, set<Edge*>> vertex_to_edges;
 unordered_set<Edge*> all_edges;
 
+// lock needed
+vector<Vertex*> available_vertex;
+set<Vertex*> covered_vertex;
+map<Vertex*, set<Edge*>> vertex_to_edges;
+
+
 int main(int argc, const char *argv[]){
+    using namespace std::chrono;
+    typedef std::chrono::high_resolution_clock Clock;
+    typedef std::chrono::duration<double> dsec;
+
+    auto init_start = Clock::now();
+    double init_time = 0;
+
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
     // std::ifstream file("../data/tmp_graph");
@@ -60,7 +72,13 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
-    omp_set_num_threads(2);
+    omp_set_num_threads(1);
+
+    init_time += duration_cast<dsec>(Clock::now() - init_start).count();
+    printf("Initialization Time: %lf.\n", init_time);
+
+    auto compute_start = Clock::now();
+    double compute_time = 0;
 
     while(available_vertex.size() > 0){
         int i;
@@ -100,7 +118,10 @@ int main(int argc, const char *argv[]){
         }
     }
 
-    write_cover_to_file();
+    compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
+    printf("Computation Time: %lf.\n", compute_time);
+
+    // write_cover_to_file();
     check_correctness();
     return 0;
 }
@@ -207,10 +228,12 @@ void remove_related_edges(Vertex* v){
         }
     }
     vertex_to_edges[v].clear();
+    omp_set_lock(&v->lock);
     vector<Vertex*>::iterator idx = find(available_vertex.begin(), available_vertex.end(), v);
     if (idx != available_vertex.end()) {
         available_vertex.erase(idx);
     }
+    omp_unset_lock(&v->lock);
 }
 
 bool istep(Vertex* v, Edge* edge){
