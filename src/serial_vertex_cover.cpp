@@ -62,16 +62,6 @@ int main(int argc, const char *argv[]){
     return 0;
 }
 
-// While a edge is not covered:
-//         For (v, w) in available_edges:
-// 		step(v ,w)
-//   		If v == 1:
-//             		add_to_cover(v)
-// 			remove all ages v connects
-//         	else if w == 1:
-//             		add_to_cover(w)
-// 			remove all ages w connects
-
 void main_logic(unordered_set<Edge*> available_edges){
     int random_idx = rand() % available_edges.size();
     unordered_set<Edge*>::iterator it = available_edges.begin();;
@@ -84,7 +74,6 @@ void main_logic(unordered_set<Edge*> available_edges){
 
 void remove_related_edges(Vertex *v){
     unordered_set<Edge*> neighbors = vertex_to_edges[v];
-
     for(unordered_set<Edge*>::iterator it = neighbors.begin(); it != neighbors.end(); it++){
         Vertex *v1 = (*it)->v1;
         Vertex *v2 = (*it)->v2;
@@ -96,6 +85,7 @@ void remove_related_edges(Vertex *v){
         }
         available_edges.erase(*it);
     }
+
     vertex_to_edges[v].clear();
 }
 
@@ -115,7 +105,7 @@ void step(Edge* edge){
     }
 
     // remove the edge 
-    available_edges.erase(edge);
+    // available_edges.erase(edge);
 }
 
 void write_cover_to_file(){
