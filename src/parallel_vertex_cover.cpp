@@ -15,7 +15,6 @@
 
 using namespace std;
 
-set<Edge*> available_edges;
 vector<Vertex*> available_vertex;
 set<Vertex*> covered_vertex;
 map<int, Vertex*> id_to_vertex;
@@ -42,6 +41,7 @@ int main(int argc, const char *argv[]){
                 v->score = 0.0;
                 v->isLeaf =false;
                 id_to_vertex[id] = v;
+                available_vertex.push_back(v);
             } else{
                 int id1 = stoi(line.substr(0, i).c_str());
                 int id2 = stoi(line.substr(i+1).c_str());
@@ -49,7 +49,6 @@ int main(int argc, const char *argv[]){
                 edge->v1 = id_to_vertex[id1];
                 edge->v2 = id_to_vertex[id2];
                 edge->isStar = false;
-                available_edges.insert(edge);
                 all_edges.insert(edge);
                 vertex_to_edges[edge->v1].insert(edge);
                 vertex_to_edges[edge->v2].insert(edge);
@@ -59,20 +58,29 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
+      omp_set_num_threads(1);
+
     while(available_vertex.size() > 0){
+        cout<< "available vertex size " << available_vertex.size() <<endl;
         int i;
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
             check_finish(available_vertex[i], i);
         }
         if(available_vertex.size() == 0){
+            cout<< "break" <<endl;
             break;
         }
+        
+        cout<< "ok 1" <<endl;
+
         //  need to set all star edges first
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
             run_leaf(available_vertex[i], i);
         }
+
+        cout<< "ok 2" <<endl;
 
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
@@ -116,6 +124,7 @@ void check_finish(Vertex* v, int i){
         if(it != available_vertex.end()){
             available_vertex.erase(it);
             covered_vertex.insert(v);
+            cout<<"insert finish"<<endl;
         }
         omp_unset_lock(&v->lock);
         return;
@@ -132,7 +141,12 @@ void run_leaf(Vertex* v, int i){
                 active_edge.push_back(*it);
             }
         }
-        int starIdx = rand()%active_edge.size();
+        cout << "active edge size " << active_edge.size() << endl;
+        if (active_edge.size() == 0) {
+            return;
+        }
+
+        int starIdx = rand() % active_edge.size();
         Edge* starEdge = active_edge[starIdx];
         starEdge->isStar = true;
     }else{
@@ -145,11 +159,14 @@ void run_root(Vertex* v, int i){
     if(!v->isLeaf){  //  root node
         int runLast = rand()%2;
         vector<Edge*> starEdges = get_star_edge(v);
+        if(starEdges.size() == 0) {
+            return;
+        }
         if(runLast){  //  only run last edge
-            step(v, starEdges[starEdges.size()-1]);
+            step(starEdges[starEdges.size()-1]);
         }else{
             for(int i = 0; i < starEdges.size(); i++){
-                step(v, starEdges[i]);
+                step(starEdges[i]);
             }
         }
     }else{
@@ -179,9 +196,12 @@ void remove_related_edges(Vertex* v){
         } else{
             vertex_to_edges[v2].erase(*it);
         }
-        available_edges.erase(*it);
     }
     vertex_to_edges[v].clear();
+    vector<Vertex*>::iterator idx = find(available_vertex.begin(), available_vertex.end(), v);
+    if (idx != available_vertex.end()) {
+        available_vertex.erase(idx);
+    }
 }
 
 bool istep(Vertex* v, Edge* edge){
@@ -189,11 +209,13 @@ bool istep(Vertex* v, Edge* edge){
     Vertex* v2 = edge->v2;
     float beta = min((1 - v1->score) * v1->weight, (1 - v2->score) * v2->weight);
     float score = 0.0;
+
     if(v1->id == v->id){
         score = v1->score + beta /  v1->weight;
-    }else{
+    }else if(v2->id == v->id) {
         score = v2->score + beta /  v2->weight;
     }
+
     if(score == 1.0){
         return true;
     }else{
@@ -201,7 +223,7 @@ bool istep(Vertex* v, Edge* edge){
     }
 }
 
-void step(Vertex* v, Edge* edge){
+void step(Edge* edge){
     Vertex* v1 = edge->v1;
     Vertex* v2 = edge->v2;
     float beta = min((1 - v1->score) * v1->weight, (1 - v2->score) * v2->weight);

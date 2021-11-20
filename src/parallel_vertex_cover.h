@@ -25,7 +25,7 @@ struct Edge {
 void program();
 void main_logic(unordered_set<Edge> available_edges);
 void remove_related_edges(Vertex v);
-void step(Vertex* v, Edge* edge);
+void step(Edge* edge);
 void check_finish(Vertex* v, int i);
 void run_leaf(Vertex* v, int i);
 void run_root(Vertex* v, int i);
