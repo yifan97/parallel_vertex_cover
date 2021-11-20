@@ -21,5 +21,6 @@ void program();
 void main_logic(unordered_set<Edge*> available_edges);
 void remove_related_edges(Vertex *v);
 void write_cover_to_file();
+void check_correctness();
 
 #endif

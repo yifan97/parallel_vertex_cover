@@ -16,6 +16,7 @@ unordered_set<Edge*> available_edges;
 unordered_set<Vertex*> covered_vertex;
 map<int, Vertex*> id_to_vertex;
 map<Vertex*, unordered_set<Edge*> > vertex_to_edges;
+unordered_set<Edge*> all_edges;
 
 int main(int argc, const char *argv[]){
     int already_handled = 0;
@@ -43,6 +44,7 @@ int main(int argc, const char *argv[]){
                 edge->v1 = id_to_vertex[id1];
                 edge->v2 = id_to_vertex[id2];
                 available_edges.insert(edge);
+                all_edges.insert(edge);
                 vertex_to_edges[edge->v1].insert(edge);
                 vertex_to_edges[edge->v2].insert(edge);
             }
@@ -55,6 +57,7 @@ int main(int argc, const char *argv[]){
         main_logic(available_edges);
     }
     write_cover_to_file();
+    check_correctness();
     return 0;
 }
 
@@ -106,5 +109,21 @@ void write_cover_to_file(){
     cout << "total number of covered vertex is " << covered_vertex.size() << endl;
     for(unordered_set<Vertex*>:: iterator it = covered_vertex.begin(); it != covered_vertex.end(); it++){
         cout << "id is " << (*it)->id << endl;
+    }
+}
+
+void check_correctness(){
+    unordered_set<int> covered_ids;
+    for(unordered_set<Vertex*>:: iterator it = covered_vertex.begin(); it != covered_vertex.end(); it++){
+        covered_ids.insert((*it)->id);
+    }
+
+    for(unordered_set<Edge*>:: iterator it = all_edges.begin(); it != all_edges.end(); it++){
+        int id1 = (*it)->v1->id;
+        int id2 = (*it)->v2->id;
+
+        if(covered_ids.find(id1) == covered_ids.end() && covered_ids.find(id2) == covered_ids.end()) {
+            cout << "You missed some vertex!!!!" << endl;
+        }
     }
 }
