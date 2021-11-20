@@ -34,6 +34,7 @@ vector<Edge*> get_star_edge(Vertex* v);
 void remove_related_edges(Vertex* v);
 bool istep(Vertex* v, Edge* edge);
 void write_cover_to_file();
+bool root_leaf_edge(Edge* edge);
 void check_correctness();
 
 #endif
