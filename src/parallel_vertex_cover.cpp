@@ -61,7 +61,7 @@ int main(int argc, const char *argv[]){
     omp_set_num_threads(1);
 
     while(available_vertex.size() > 0){
-        cout<< "available vertex size " << available_vertex.size() <<endl;
+        cout<< "begin available vertex size " << available_vertex.size() <<endl;
         int i;
         vector<Vertex*> toBeDeleted;
 #pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
@@ -95,6 +95,7 @@ int main(int argc, const char *argv[]){
         for(i = 0; i < available_vertex.size(); i++){
             run_root(available_vertex[i]);
         }
+        cout<< "end available vertex size " << available_vertex.size() <<endl;
     }
 
     write_cover_to_file();
