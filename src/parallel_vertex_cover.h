@@ -1,5 +1,6 @@
 #include <unordered_set>
 #include <map>  
+#include <omp.h>
 
 using namespace std;
 
@@ -7,6 +8,7 @@ struct Vertex {
     int id;
     int weight;
     float score;
+    omp_lock_t lock;
 };
 
 struct Edge {
