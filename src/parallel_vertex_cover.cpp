@@ -83,6 +83,12 @@ int main(int argc, const char *argv[]){
         
         cout<< "ok 1" <<endl;
 
+//  need to set all star edges first
+#pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
+        for(i = 0; i < available_vertex.size(); i++){
+            assign_role(available_vertex[i]);
+        }
+        
         //  need to set all star edges first
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
