@@ -8,6 +8,7 @@
 #include <stdio.h>      
 #include <stdlib.h>     
 #include <time.h>
+#include <string.h> 
 #include <algorithm>
 #include <vector>
 #include <set>
@@ -15,6 +16,9 @@
 #include <omp.h>
 
 using namespace std;
+
+static int _argc;
+static const char **_argv;
 
 // no lock needed
 map<int, Vertex*> id_to_vertex;
@@ -28,6 +32,32 @@ map<Vertex*, set<Edge*>> vertex_to_edges;
 omp_lock_t available_lock;
 omp_lock_t cover_lock;
 
+const char *get_option_string(const char *option_name,
+                              const char *default_value)
+{
+  for (int i = _argc - 2; i >= 0; i -= 2)
+    if (strcmp(_argv[i], option_name) == 0)
+      return _argv[i + 1];
+  return default_value;
+}
+
+int get_option_int(const char *option_name, int default_value)
+{
+  for (int i = _argc - 2; i >= 0; i -= 2)
+    if (strcmp(_argv[i], option_name) == 0)
+      return atoi(_argv[i + 1]);
+  return default_value;
+}
+
+static void show_help(const char *program_path)
+{
+  printf("Usage: %s OPTIONS\n", program_path);
+  printf("\n");
+  printf("OPTIONS:\n");
+  printf("\t-f <input_filename> (required)\n");
+  printf("\t-n <num_of_threads> (required)\n");
+}
+
 int main(int argc, const char *argv[]){
     using namespace std::chrono;
     typedef std::chrono::high_resolution_clock Clock;
@@ -35,6 +65,17 @@ int main(int argc, const char *argv[]){
 
     auto init_start = Clock::now();
     double init_time = 0;
+
+    _argc = argc - 1;
+    _argv = argv + 1;
+
+    const char *input_filename = get_option_string("-f", NULL);
+    if (input_filename == NULL) {
+        printf("Input file is required! Check the instruction and run it again!\n");
+        exit(-1);
+    } 
+    
+    int num_of_threads = get_option_int("-n", 1);
 
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
@@ -76,7 +117,7 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
-    omp_set_num_threads(1);
+    omp_set_num_threads(num_of_threads);
 
     init_time += duration_cast<dsec>(Clock::now() - init_start).count();
     printf("Initialization Time: %lf.\n", init_time);
