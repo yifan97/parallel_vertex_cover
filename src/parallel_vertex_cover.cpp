@@ -130,7 +130,7 @@ int main(int argc, const char *argv[]){
 void delete_finish(Vertex* v, vector<Vertex*> toBeDeleted, vector<Vertex*> tmp){
     vector<Vertex*>::iterator it = find(toBeDeleted.begin(), toBeDeleted.end(), v);
     if(it == toBeDeleted.end()){  //  put it back if not to be deleted
-        tmp.push_back(*it);
+        tmp.push_back(v);
     }
 }
 
