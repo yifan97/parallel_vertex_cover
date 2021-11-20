@@ -151,12 +151,20 @@ void check_finish(Vertex* v, vector<Vertex*> &toBeDeleted){
     return;
 }
 
-void run_leaf(Vertex* v){
+void assign_role(Vertex* v){
     int head = rand() % 2;
     if(head == 0){  //  leaf node
         v->isLeaf = true;
+    }else{
+        v->isLeaf = false;
+    }
+}
+
+void run_leaf(Vertex* v){
+    if(v->isLeaf){  //  leaf node
         vector<Edge*> active_edge;
         for(set<Edge*>::iterator it = vertex_to_edges[v].begin(); it != vertex_to_edges[v].end(); it++){
+            if(!root_leaf_edge(*it)) continue;
             if(istep(v, *it)){  // active
                 active_edge.push_back(*it);
             }
@@ -165,14 +173,16 @@ void run_leaf(Vertex* v){
         if (active_edge.size() == 0) {
             return;
         }
-
         int starIdx = rand() % active_edge.size();
         Edge* starEdge = active_edge[starIdx];
         starEdge->isStar = true;
     }else{
-        v->isLeaf = false;
         return;
     }
+}
+
+bool root_leaf_edge(Edge* edge){
+    return (edge->v1->isLeaf && !edge->v2->isLeaf)||(edge->v2->isLeaf && !edge->v1->isLeaf);
 }
 
 void run_root(Vertex* v){
