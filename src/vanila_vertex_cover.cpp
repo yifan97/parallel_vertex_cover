@@ -17,8 +17,7 @@ unordered_set<Vertex*> covered_vertex;
 map<int, Vertex*> id_to_vertex;
 map<Vertex*, unordered_set<Edge*> > vertex_to_edges;
 
-void program(){
-    
+int main(int argc, const char *argv[]){
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
     if (file.is_open()) {
@@ -32,7 +31,7 @@ void program(){
             if (already_handled < num_vertex) {
                 int id = stoi(line.substr(0, i).c_str());
                 int weight = stoi(line.substr(i+1).c_str());
-                Vertex *v = (Vertex*) malloc(sizeof(int) * 2 + sizeof(float));
+                Vertex *v = (Vertex*) malloc(sizeof(struct Vertex));
                 v->id = id;
                 v->weight = weight;
                 v->score = 0.0;
@@ -52,9 +51,11 @@ void program(){
         file.close();
     }
 
-    while(available_edges.size() >= 0){
+    while(available_edges.size() > 0){
         main_logic(available_edges);
     }
+    write_cover_to_file();
+    return 0;
 }
 
 // While a edge is not covered:
@@ -79,11 +80,14 @@ void main_logic(unordered_set<Edge*> available_edges){
     remove_related_edges(v1);
     covered_vertex.insert(v2);
     remove_related_edges(v2);
+
+    // remove the edge 
+    available_edges.erase(*it);
 }
 
 void remove_related_edges(Vertex *v){
     unordered_set<Edge*> neighbors = vertex_to_edges[v];
-     
+    
     for(unordered_set<Edge*>:: iterator it = neighbors.begin(); it != neighbors.end(); it++){
         Vertex *v1 = (*it)->v1;
         Vertex *v2 = (*it)->v2;
@@ -93,6 +97,14 @@ void remove_related_edges(Vertex *v){
         } else{
             vertex_to_edges[v2].erase(*it);
         }
+        available_edges.erase(*it);
     }
     vertex_to_edges[v].clear();
+}
+
+void write_cover_to_file(){
+    cout << "total number of covered vertex is " << covered_vertex.size() << endl;
+    for(unordered_set<Vertex*>:: iterator it = covered_vertex.begin(); it != covered_vertex.end(); it++){
+        cout << "id is " << (*it)->id << endl;
+    }
 }
