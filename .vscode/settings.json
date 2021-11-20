@@ -4,6 +4,7 @@
         "xhash": "cpp",
         "unordered_set": "cpp",
         "list": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "ostream": "cpp"
     }
 }

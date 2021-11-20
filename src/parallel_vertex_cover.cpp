@@ -72,7 +72,7 @@ int main(int argc, const char *argv[]){
             cout<< "break" <<endl;
             break;
         }
-        cout << "after check finish" << endl;
+        cout << "after check finish delete size:" <<toBeDeleted.size() << endl;
         vector<Vertex*> tmp;
 #pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
@@ -135,9 +135,9 @@ void delete_finish(Vertex* v, vector<Vertex*> toBeDeleted, vector<Vertex*> tmp){
 }
 
 void check_finish(Vertex* v, vector<Vertex*> toBeDeleted){
-    cout << "in check" <<endl;
+    // cout << "in check" <<endl;
     if(vertex_to_edges[v].size() == 0){
-        cout << "in if" <<endl;
+        // cout << "in if" <<endl;
         // omp_set_lock(&v->lock);
         vector<Vertex*>::iterator it = find(available_vertex.begin(), available_vertex.end(), v);
         if(it != available_vertex.end()){
@@ -147,7 +147,7 @@ void check_finish(Vertex* v, vector<Vertex*> toBeDeleted){
         }
         // omp_unset_lock(&v->lock);
     }
-    cout << "out check" << endl;
+    // cout << "out check" << endl;
     return;
 }
 
