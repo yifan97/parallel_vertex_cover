@@ -127,7 +127,7 @@ int main(int argc, const char *argv[]){
 //      else if w == 1:
 // 		    cover w, and all w's edges
 
-void delete_finish(Vertex* v, vector<Vertex*> toBeDeleted, vector<Vertex*> tmp){
+void delete_finish(Vertex* v, vector<Vertex*> toBeDeleted, vector<Vertex*> &tmp){
     vector<Vertex*>::iterator it = find(toBeDeleted.begin(), toBeDeleted.end(), v);
     if(it == toBeDeleted.end()){  //  put it back if not to be deleted
         tmp.push_back(v);
