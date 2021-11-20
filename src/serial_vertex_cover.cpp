@@ -140,5 +140,5 @@ void check_correctness(){
             count++;
         }
     }
-    cout << "You missed" << count << endl;
+    cout << "You missed " << count << endl;
 }
