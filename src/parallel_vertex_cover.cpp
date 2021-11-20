@@ -24,6 +24,7 @@ unordered_set<Edge*> all_edges;
 int main(int argc, const char *argv[]){
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
+    // std::ifstream file("../data/tmp_graph");
     if (file.is_open()) {
         string line;
         getline(file, line);
@@ -42,6 +43,7 @@ int main(int argc, const char *argv[]){
                 v->isLeaf =false;
                 id_to_vertex[id] = v;
                 available_vertex.push_back(v);
+                omp_init_lock(&(v->lock));
             } else{
                 int id1 = stoi(line.substr(0, i).c_str());
                 int id2 = stoi(line.substr(i+1).c_str());
@@ -58,10 +60,9 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
-    omp_set_num_threads(1);
+    omp_set_num_threads(2);
 
     while(available_vertex.size() > 0){
-        cout<< "begin available vertex size " << available_vertex.size() <<endl;
         int i;
         vector<Vertex*> toBeDeleted;
 #pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
@@ -69,10 +70,9 @@ int main(int argc, const char *argv[]){
             check_finish(available_vertex[i], toBeDeleted);
         }
         if(available_vertex.size() == toBeDeleted.size()){
-            cout<< "break" <<endl;
             break;
         }
-        cout << "after check finish delete size:" <<toBeDeleted.size() << endl;
+
         vector<Vertex*> tmp;
 #pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
@@ -80,8 +80,7 @@ int main(int argc, const char *argv[]){
         }
         toBeDeleted.clear();
         available_vertex = tmp;
-        
-        cout<< "ok 1" <<endl;
+
 
 //  need to set all star edges first
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
@@ -95,13 +94,10 @@ int main(int argc, const char *argv[]){
             run_leaf(available_vertex[i]);
         }
 
-        cout<< "ok 2" <<endl;
-
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
             run_root(available_vertex[i]);
         }
-        cout<< "end available vertex size " << available_vertex.size() <<endl;
     }
 
     write_cover_to_file();
@@ -109,51 +105,28 @@ int main(int argc, const char *argv[]){
     return 0;
 }
 
-// While a vertex is not finished:
-//    if all edges are covered, finish
-//    else flip a coin, heads->leaf node, tails->root node
-//    if leaf v:
-//      label edge （v,w）active if w is root and step(x,(v,w)) would add v
-//      randomly choose one active edge as star edge 
-//         For (v, w) in available_edges:
-//    if root w:
-//      flip a coin
-//      if heads:
-//          for each star edge(fixed order):
-//              if w not yet in the cover, do step(x,(v,w))
-//      if tails:
-//          do step for only the last edge in above order          
-
-
-// 		step(v ,w)
-//      beta = min((1-Xv)*Cv, (1-Xw)Cw)
-//      Xv += beta/Cv, Xw += beta/Cw
-//   	If v == 1:
-// 		    cover v, and all v's edges
-//      else if w == 1:
-// 		    cover w, and all w's edges
 
 void delete_finish(Vertex* v, vector<Vertex*> &toBeDeleted, vector<Vertex*> &tmp){
     vector<Vertex*>::iterator it = find(toBeDeleted.begin(), toBeDeleted.end(), v);
     if(it == toBeDeleted.end()){  //  put it back if not to be deleted
+        omp_set_lock(&v->lock);
         tmp.push_back(v);
+        omp_unset_lock(&v->lock);
     }
 }
 
 void check_finish(Vertex* v, vector<Vertex*> &toBeDeleted){
-    // cout << "in check" <<endl;
     if(vertex_to_edges[v].size() == 0){
-        // cout << "in if" <<endl;
         // omp_set_lock(&v->lock);
-        vector<Vertex*>::iterator it = find(available_vertex.begin(), available_vertex.end(), v);
-        if(it != available_vertex.end()){
-            toBeDeleted.push_back(*it);
-            covered_vertex.insert(v);
-            cout<<"insert finish"<<endl;
-        }
+        // vector<Vertex*>::iterator it = find(available_vertex.begin(), available_vertex.end(), v);
+        // if(it != available_vertex.end()){
+        //     toBeDeleted.push_back(*it);
+        // }
         // omp_unset_lock(&v->lock);
+        omp_set_lock(&v->lock);
+        toBeDeleted.push_back(v);
+        omp_unset_lock(&v->lock);
     }
-    // cout << "out check" << endl;
     return;
 }
 
@@ -175,7 +148,6 @@ void run_leaf(Vertex* v){
                 active_edge.push_back(*it);
             }
         }
-        cout << "active edge size " << active_edge.size() << endl;
         if (active_edge.size() == 0) {
             return;
         }
@@ -203,6 +175,7 @@ void run_root(Vertex* v){
         }else{
             for(int i = 0; i < starEdges.size(); i++){
                 step(starEdges[i]);
+                if (covered_vertex.find(v) != covered_vertex.end()) break;
             }
         }
     }else{
@@ -292,9 +265,8 @@ void check_correctness(){
         int id2 = (*it)->v2->id;
 
         if(covered_ids.find(id1) == covered_ids.end() && covered_ids.find(id2) == covered_ids.end()) {
-            // cout << "You missed some vertex!!!!" << endl;
             count++;
         }
     }
-    cout << "You missed " << count << endl;
+    cout << "You missed " << count << " vertex!!!!" << endl;
 }
