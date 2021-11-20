@@ -25,6 +25,8 @@ vector<Vertex*> available_vertex;
 set<Vertex*> covered_vertex;
 map<Vertex*, set<Edge*>> vertex_to_edges;
 
+omp_lock_t available_lock;
+omp_lock_t cover_lock;
 
 int main(int argc, const char *argv[]){
     using namespace std::chrono;
@@ -43,6 +45,8 @@ int main(int argc, const char *argv[]){
         int i = line.find(" ");
         int num_vertex = stoi(line.substr(0, i).c_str());
         int num_edges = stoi(line.substr(i+1).c_str());
+        omp_init_lock(&available_lock);
+        omp_init_lock(&cover_lock);
         while (getline(file, line)) {
             i = line.find(" ");
             if (already_handled < num_vertex) {
@@ -82,22 +86,18 @@ int main(int argc, const char *argv[]){
 
     while(available_vertex.size() > 0){
         int i;
-        vector<Vertex*> toBeDeleted;
-#pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
+#pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
         for(i = 0; i < available_vertex.size(); i++){
-            check_finish(available_vertex[i], toBeDeleted);
-        }
-        if(available_vertex.size() == toBeDeleted.size()){
-            break;
+            check_finish(available_vertex[i]);
         }
 
-        vector<Vertex*> tmp;
-#pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
-        for(i = 0; i < available_vertex.size(); i++){
-            delete_finish(available_vertex[i], toBeDeleted, tmp);
-        }
-        toBeDeleted.clear();
-        available_vertex = tmp;
+//         vector<Vertex*> tmp;
+// #pragma omp parallel for shared(available_vertex, toBeDeleted) private(i) schedule(dynamic)
+//         for(i = 0; i < available_vertex.size(); i++){
+//             delete_finish(available_vertex[i], toBeDeleted, tmp);
+//         }
+//         toBeDeleted.clear();
+//         available_vertex = tmp;
 
 
 //  need to set all star edges first
@@ -127,26 +127,26 @@ int main(int argc, const char *argv[]){
 }
 
 
-void delete_finish(Vertex* v, vector<Vertex*> &toBeDeleted, vector<Vertex*> &tmp){
-    vector<Vertex*>::iterator it = find(toBeDeleted.begin(), toBeDeleted.end(), v);
-    if(it == toBeDeleted.end()){  //  put it back if not to be deleted
-        omp_set_lock(&v->lock);
-        tmp.push_back(v);
-        omp_unset_lock(&v->lock);
-    }
-}
+// void delete_finish(Vertex* v, vector<Vertex*> &toBeDeleted, vector<Vertex*> &tmp){
+//     vector<Vertex*>::iterator it = find(toBeDeleted.begin(), toBeDeleted.end(), v);
+//     if(it == toBeDeleted.end()){  //  put it back if not to be deleted
+//         omp_set_lock(&v->lock);
+//         tmp.push_back(v);
+//         omp_unset_lock(&v->lock);
+//     }
+// }
 
-void check_finish(Vertex* v, vector<Vertex*> &toBeDeleted){
+void check_finish(Vertex* v){
     if(vertex_to_edges[v].size() == 0){
+        omp_set_lock(&available_lock);
+        vector<Vertex*>::iterator it = find(available_vertex.begin(), available_vertex.end(), v);
+        if(it != available_vertex.end()){
+            available_vertex.erase(it);
+        }
+        omp_unset_lock(&available_lock);
         // omp_set_lock(&v->lock);
-        // vector<Vertex*>::iterator it = find(available_vertex.begin(), available_vertex.end(), v);
-        // if(it != available_vertex.end()){
-        //     toBeDeleted.push_back(*it);
-        // }
+        // toBeDeleted.push_back(v);
         // omp_unset_lock(&v->lock);
-        omp_set_lock(&v->lock);
-        toBeDeleted.push_back(v);
-        omp_unset_lock(&v->lock);
     }
     return;
 }
@@ -221,19 +221,21 @@ void remove_related_edges(Vertex* v){
     for(set<Edge*>::iterator it = neighbors.begin(); it != neighbors.end(); it++){
         Vertex* v1 = (*it)->v1;
         Vertex* v2 = (*it)->v2;
+        omp_set_lock(&v->lock);
         if(v1->id != v->id) {
             vertex_to_edges[v1].erase(*it);
         } else{
             vertex_to_edges[v2].erase(*it);
         }
+        omp_unset_lock(&v->lock);
     }
     vertex_to_edges[v].clear();
-    omp_set_lock(&v->lock);
+    omp_set_lock(&available_lock);
     vector<Vertex*>::iterator idx = find(available_vertex.begin(), available_vertex.end(), v);
     if (idx != available_vertex.end()) {
         available_vertex.erase(idx);
     }
-    omp_unset_lock(&v->lock);
+    omp_unset_lock(&available_lock);
 }
 
 bool istep(Vertex* v, Edge* edge){
@@ -262,10 +264,14 @@ void step(Edge* edge){
     v1->score += beta /  v1->weight;
     v2->score += beta /  v2->weight;
     if(v1->score == 1.0) {
+        omp_set_lock(&cover_lock);
         covered_vertex.insert(v1);
+        omp_unset_lock(&cover_lock);
         remove_related_edges(v1);
     } else if(v2->score == 1.0) {
+        omp_set_lock(&cover_lock);
         covered_vertex.insert(v2);
+        omp_unset_lock(&cover_lock);
         remove_related_edges(v2);
     }
 }
