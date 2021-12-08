@@ -116,7 +116,7 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
-    omp_set_num_threads(8);
+    omp_set_num_threads(num_of_threads);
 
     init_time += duration_cast<dsec>(Clock::now() - init_start).count();
     printf("Initialization Time: %lf.\n", init_time);
