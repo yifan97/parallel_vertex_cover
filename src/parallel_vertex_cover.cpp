@@ -79,7 +79,6 @@ int main(int argc, const char *argv[]){
 
     int already_handled = 0;
     std::ifstream file("../data/graph_data");
-    // std::ifstream file("../data/tmp_graph");
     if (file.is_open()) {
         string line;
         getline(file, line);
@@ -117,7 +116,7 @@ int main(int argc, const char *argv[]){
         file.close();
     }
 
-    omp_set_num_threads(num_of_threads);
+    omp_set_num_threads(8);
 
     init_time += duration_cast<dsec>(Clock::now() - init_start).count();
     printf("Initialization Time: %lf.\n", init_time);
@@ -125,6 +124,7 @@ int main(int argc, const char *argv[]){
     auto compute_start = Clock::now();
     double compute_time = 0;
 
+    // printf("num of core %d\n",num_of_threads);
     while(available_vertex.size() > 0){
         int i;
 #pragma omp parallel for shared(available_vertex) private(i) schedule(dynamic)
