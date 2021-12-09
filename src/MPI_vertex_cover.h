@@ -39,7 +39,7 @@ bool istep(Vertex* v, Edge* edge);
 bool step(Vertex* v, Edge* edge);
 void write_cover_to_file();
 bool root_leaf_edge(Edge* edge);
-void check_correctness();
+void check_correctness(int nproc);
 void assign_role(Vertex* v);
 void print_info(Vertex* v);
 
