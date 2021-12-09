@@ -437,7 +437,7 @@ vector<Edge*> get_star_edge(Vertex* v){
         if((*it)->isStar){
             starEdges.push_back(*it);
         }
-        // (*it)->isStar = false;
+        (*it)->isStar = false;
     }
     return starEdges;
 }
@@ -557,7 +557,7 @@ void check_correctness(int nproc){
     cout << "after for all edges size: " << all_edges.size() <<"\n";
     cout << "after for final edges size: " << final_edges.size() <<"\n";
     set<int> correctly_covered;
-    int covered_weight;
+    int covered_weight = 0;
     for(set<int>::iterator it = final_cover.begin(); it != final_cover.end(); it++){
         int id = *it;
         covered_weight += id_to_vertex[id]->weight;
@@ -574,6 +574,9 @@ void check_correctness(int nproc){
     }
     cout << "Covered " << final_cover.size() << " vertices out of " << num_vertex*nproc <<endl;
     cout << "Covered weight " << covered_weight << " out of " << total_weight <<endl;
+    cout << "Average weight per node " << (double)total_weight/(num_vertex*nproc);
+    cout << " vs. ours average weight per node" << (double)covered_weight/final_cover.size() << endl;
+    cout << "Average total covered weight for "<<final_cover.size() <<" vertices is " << total_weight/(num_vertex*nproc)*final_cover.size() << endl;
     cout << "You missed " << num_vertex*nproc- correctly_covered.size() << " vertex!!!!" << endl;
 }
 

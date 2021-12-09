@@ -32,6 +32,11 @@ map<Vertex*, set<Edge*>> vertex_to_edges;
 vector<Vertex*> toBeDeleted;
 vector<Vertex*> tmp;
 
+
+// for correctness check only
+map<int, set<Edge*>> final_neighbors;
+
+
 omp_lock_t available_lock;
 omp_lock_t cover_lock;
 atomic<int> atomic_count{0};
@@ -63,6 +68,7 @@ static void show_help(const char *program_path)
 }
 
 int num_vertex;
+int total_weight = 0;
 
 int main(int argc, const char *argv[]){
     using namespace std::chrono;
@@ -105,6 +111,7 @@ int main(int argc, const char *argv[]){
                 v->isLeaf =false;
                 id_to_vertex[id] = v;
                 available_vertex.push_back(v);
+                total_weight += weight;
                 omp_init_lock(&(v->lock));
             } else{
                 int id1 = stoi(line.substr(0, i).c_str());
@@ -116,6 +123,8 @@ int main(int argc, const char *argv[]){
                 all_edges.insert(edge);
                 vertex_to_edges[edge->v1].insert(edge);
                 vertex_to_edges[edge->v2].insert(edge);
+                final_neighbors[edge->v1->id].insert(edge);
+                final_neighbors[edge->v2->id].insert(edge);
             }
             already_handled++;
         }
@@ -123,7 +132,7 @@ int main(int argc, const char *argv[]){
     }
 
     omp_set_num_threads(num_of_threads);
-
+    cout << "!!!number of threads " << num_of_threads <<"\n";
     init_time += duration_cast<dsec>(Clock::now() - init_start).count();
     printf("Initialization Time: %lf.\n", init_time);
 
@@ -399,26 +408,41 @@ void write_cover_to_file(){
 
 void check_correctness(){
     cout << "Now checking correctness!"<< endl;
-    vector<int> covered_ids;
-    cout << "before for1\n";
-    for(set<Vertex*>:: iterator it = covered_vertex.begin(); it != covered_vertex.end(); it++){
-        // cout << "before id\n";
-        // cout << "id: " << (*it)->id << endl;
-        // cout << "after id\n";
-        covered_ids.push_back((*it)->id);
-        // cout << "after insert\n";
-    }
-    int count = 0;
-    cout << "after for1\n";
-    for(set<Edge*>:: iterator it = all_edges.begin(); it != all_edges.end(); it++){
-        int id1 = (*it)->v1->id;
-        int id2 = (*it)->v2->id;
-        // cout << "before if\n";
-        if(find(covered_ids.begin(), covered_ids.end() ,id1) == covered_ids.end() && find(covered_ids.begin(), covered_ids.end() ,id2) == covered_ids.end()) {
-            cout << "Miss edge" << id1 << " , " << id2 <<endl;
-            count++;
+    set<int> final_cover;
+    for(int i = 0; i < num_vertex; i++){
+        if(covered_vertex.find(id_to_vertex[i]) == covered_vertex.end()){  // take complement
+            final_cover.insert(i);
         }
     }
-    cout << "Covered " << covered_vertex.size() << " vertices out of " << num_vertex <<endl;
-    cout << "You missed " << count << " vertex!!!!" << endl;
+    cout << "before for1\n";
+    // for(set<Vertex*>:: iterator it = covered_vertex.begin(); it != covered_vertex.end(); it++){
+    //     // cout << "before id\n";
+    //     // cout << "id: " << (*it)->id << endl;
+    //     // cout << "after id\n";
+    //     final_cover.insert((*it)->id);
+    //     // cout << "after insert\n";
+    // }
+    cout << "after for1\n";
+    set<int> correctly_covered;
+    int covered_weight = 0;
+        for(set<int>::iterator it = final_cover.begin(); it != final_cover.end(); it++){
+        int id = *it;
+        covered_weight += id_to_vertex[id]->weight;
+        map<int, set<Edge*>>::iterator t = final_neighbors.find(id);
+        if(t == final_neighbors.end()) {
+            continue;
+        }
+        set<Edge*> neighbors = t->second;
+        // cout << "before if\n";
+        for(set<Edge*>::iterator itr = neighbors.begin(); itr != neighbors.end(); itr++) {
+            correctly_covered.insert((*itr)->v1->id);
+            correctly_covered.insert((*itr)->v2->id);
+        }
+    }
+    cout << "Covered " << final_cover.size() << " vertices out of " << num_vertex <<endl;
+    cout << "Covered weight " << covered_weight << " out of " << total_weight <<endl;
+    cout << "Average weight per node " << (double)total_weight/num_vertex;
+    cout << " vs. ours average weight per node " << (double)covered_weight/final_cover.size() << endl;
+    cout << "Average total covered weight for "<<final_cover.size() <<" vertices is " << (total_weight/num_vertex)*final_cover.size() << endl;
+    cout << "You missed " << num_vertex- correctly_covered.size() << " vertex!!!!" << endl;
 }
