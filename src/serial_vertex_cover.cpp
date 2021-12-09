@@ -40,6 +40,8 @@ static void show_help(const char *program_path)
   printf("\t-f <input_filename> (required)\n");
 }
 
+int num_vertex;
+
 int main(int argc, const char *argv[]){
     using namespace std::chrono;
     typedef std::chrono::high_resolution_clock Clock;
@@ -51,19 +53,19 @@ int main(int argc, const char *argv[]){
     _argc = argc - 1;
     _argv = argv + 1;
 
-    const char *input_filename = get_option_string("-f", NULL);
+    const char *input_filename = get_option_string("-f", "../data/graph_data");
     if (input_filename == NULL) {
         printf("Input file is required! Check the instruction and run it again!\n");
         exit(-1);
     } 
 
     int already_handled = 0;
-    std::ifstream file("../data/graph_data");
+    std::ifstream file(input_filename);
     if (file.is_open()) {
         string line;
         getline(file, line);
         int i = line.find(" ");
-        int num_vertex = stoi(line.substr(0, i).c_str());
+        num_vertex = stoi(line.substr(0, i).c_str());
         int num_edges = stoi(line.substr(i+1).c_str());
         while (getline(file, line)) {
             i = line.find(" ");
@@ -176,5 +178,6 @@ void check_correctness(){
             count++;
         }
     }
+    cout << "Covered " << covered_vertex.size() << " vertices out of " << num_vertex <<endl;
     cout << "You missed " << count << " vertex!!!!" << endl;
 }
