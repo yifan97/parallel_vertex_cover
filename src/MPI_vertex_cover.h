@@ -4,7 +4,10 @@
 #include <omp.h>
 #include <unordered_set>
 #include <map>  
+#include <fstream>
+#include <iostream>
 #include <vector>
+#include <mpi.h>
 
 using namespace std;
 
@@ -42,7 +45,11 @@ void print_info(Vertex* v);
 
 bool compare_float(float x, float y);
 int compute(int procID, int nproc, char *input_filename);
+void communicate_cover(int procID, int nproc);
 
+void take_share(char *input_filename, int procID, int nproc);
 
-void take_share(ifstream file, int procID, int nproc);
+void finish_data(MPI_Request *request);
+void start_send_data(int *data, int count, int process_id, MPI_Request *request);
+void receive_data(int *data, int count, int process_id);
 #endif

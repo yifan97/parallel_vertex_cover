@@ -133,7 +133,8 @@ static void show_help(const char *program_path)
 int num_vertex;
 
 
-void take_share(ifstream file, int procID, int nproc){
+void take_share(char *input_filename, int procID, int nproc){
+    std::ifstream file(input_filename);
     if (file.is_open()) {
         string line;
         getline(file, line);
@@ -204,8 +205,7 @@ void take_share(ifstream file, int procID, int nproc){
 
 int compute(int procID, int nproc, char *input_filename){
     
-    std::ifstream file(input_filename);
-    take_share(file, procID, nproc);  //  each processor take corresponding share of data
+    take_share(input_filename, procID, nproc);  //  each processor take corresponding share of data
 
 
     // printf("num of core %d\n",num_of_threads);
@@ -242,9 +242,7 @@ int compute(int procID, int nproc, char *input_filename){
         }
     }
 
-    communicate_cover();
-    compute_time += duration_cast<dsec>(Clock::now() - compute_start).count();
-    printf("Computation Time: %lf.\n", compute_time);
+    communicate_cover(procID, nproc);
 
     // write_cover_to_file();
     check_correctness();
