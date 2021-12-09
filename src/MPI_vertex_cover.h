@@ -41,6 +41,7 @@ void assign_role(Vertex* v);
 void print_info(Vertex* v);
 
 bool compare_float(float x, float y);
+int compute(int procID, int nproc, char *input_filename);
 
 
 void take_share(ifstream file, int procID, int nproc);
