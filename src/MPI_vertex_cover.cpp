@@ -1,5 +1,5 @@
-#include "parallel_vertex_cover.h"
-
+#include "MPI_vertex_cover.h"
+#include <mpi.h>
 #include <unordered_set>
 #include <map>  
 #include <fstream>

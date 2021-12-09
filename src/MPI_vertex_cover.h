@@ -1,5 +1,5 @@
-#ifndef __PARALLELVERTEXCOVER_H__
-#define __PARALLELVERTEXCOVER_H__
+#ifndef __MPIVERTEXCOVER_H__
+#define __MPIVERTEXCOVER_H__
 
 #include <omp.h>
 #include <unordered_set>
@@ -41,4 +41,7 @@ void assign_role(Vertex* v);
 void print_info(Vertex* v);
 
 bool compare_float(float x, float y);
+
+
+void take_share(ifstream file, int procID, int nproc);
 #endif
